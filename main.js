@@ -11,22 +11,29 @@ const debounce = (fn, debounceTime) => {
 function addToList(element, repositoryName, repositoryOwner, repositoryStars) {
 	element.addEventListener('click', e => {
 		e.preventDefault()
+
+		// Очищаем поле ввода и список автокомплита
+		input.value = ''
+		document.querySelector('.searcher-block__list').innerHTML = ''
+
 		let myelement = document.createElement('div')
 		let createCloseBtn = document.createElement('div')
 		createCloseBtn.classList.add('collected-repository-close')
+		createCloseBtn.title = 'Удалить репозиторий'
 
 		myelement.innerHTML = `
-            <div class="collected-repository-info">
-                <div class="collected-repository__name">Name: ${repositoryName}</div>
-                <div class="collected-repository__owner">Owner: ${repositoryOwner}</div>
-                <div class="collected-repository__stars">Stars: ${repositoryStars}</div>
-            </div>
-        `
+      <div class="collected-repository-info">
+        <div class="collected-repository__name">Name: ${repositoryName}</div>
+        <div class="collected-repository__owner">Owner: ${repositoryOwner}</div>
+        <div class="collected-repository__stars">Stars: ${repositoryStars}</div>
+      </div>
+    `
 
 		myelement.appendChild(createCloseBtn)
 		myelement.classList.add('collected-repository')
 
 		createCloseBtn.addEventListener('click', e => {
+			e.stopPropagation()
 			myelement.remove()
 		})
 
@@ -34,39 +41,45 @@ function addToList(element, repositoryName, repositoryOwner, repositoryStars) {
 		newlist.append(myelement)
 	})
 }
-console.log('sosite')
 
 async function autoComplitApi(value) {
-	console.log(value)
 	if (!value.trim()) {
 		document.querySelector('.searcher-block__list').innerHTML = ''
-	} else {
+		return
+	}
+
+	try {
 		let response = await fetch(
 			`https://api.github.com/search/repositories?q=${value}`,
-			{
-				method: 'GET',
-			}
+			{ method: 'GET' }
 		)
 
-		if (response.ok) {
-			let json = await response.json()
-			console.log(json)
-			let nameList = json.items.map(e => e)
-			console.log(nameList)
-			document.querySelector('.searcher-block__list').innerHTML = ''
-			for (let i = 0; i < 5; i++) {
-				createElement(
-					'.searcher-block__list',
-					'a',
-					'link',
-					nameList[i].name,
-					nameList[i].owner.login,
-					nameList[i].stargazers_count
-				)
-			}
-		} else {
-			alert('Ошибка HTTP: ' + response.status)
+		if (!response.ok) {
+			throw new Error(`Ошибка HTTP: ${response.status}`)
 		}
+
+		let json = await response.json()
+		document.querySelector('.searcher-block__list').innerHTML = ''
+
+		// Ограничиваем количество результатов и проверяем их наличие
+		const items = json.items.slice(0, 5)
+		if (items.length === 0) {
+			return
+		}
+
+		items.forEach(item => {
+			createElement(
+				'.searcher-block__list',
+				'a',
+				'link',
+				item.name,
+				item.owner.login,
+				item.stargazers_count
+			)
+		})
+	} catch (error) {
+		console.error('Ошибка при загрузке данных:', error)
+		// Можно добавить отображение ошибки пользователю
 	}
 }
 
@@ -93,7 +106,6 @@ function createElement(
 const debouncedApi = debounce(autoComplitApi, 1000)
 
 input.addEventListener('input', e => {
-	console.log('value', e.target.value)
 	debouncedApi(e.target.value)
 })
 
