@@ -109,8 +109,10 @@ input.addEventListener('input', e => {
 	debouncedApi(e.target.value)
 })
 
-input.addEventListener('change', e => {
-	if (!e.target.value.trim()) {
-		document.querySelector('.searcher-block__list').innerHTML = ''
-	}
-})
+const person = {
+	firstName: tilek,
+}
+
+console.log(person.firstName)
+console.log(person.firstName)
+console.log(person.firstName)
